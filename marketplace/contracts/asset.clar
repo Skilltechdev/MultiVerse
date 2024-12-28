@@ -9,6 +9,9 @@
 ;; u8 - Listing not found
 ;; u9 - Insufficient payment
 ;; u10 - Transfer failed
+;; u11 - Invalid input parameters
+;; u12 - Invalid token ID
+;; u13 - Invalid price
 
 ;; Constants
 (define-constant contract-owner tx-sender)
@@ -22,6 +25,9 @@
 (define-constant err-no-listing (err u8))
 (define-constant err-insufficient-payment (err u9))
 (define-constant err-transfer-failed (err u10))
+(define-constant err-invalid-params (err u11))
+(define-constant err-invalid-token (err u12))
+(define-constant err-invalid-price (err u13))
 
 ;; Data Variables
 (define-data-var next-token-id uint u1)
@@ -69,6 +75,28 @@
     (is-eq tx-sender contract-owner)
 )
 
+(define-private (validate-token-id (token-id uint))
+    (and 
+        (> token-id u0)
+        (< token-id (var-get next-token-id))
+    )
+)
+
+(define-private (validate-price (price uint))
+    (> price u0)
+)
+
+(define-private (validate-listing-id (listing-id uint))
+    (and 
+        (> listing-id u0)
+        (< listing-id (var-get next-listing-id))
+    )
+)
+
+(define-private (validate-max-supply (max-supply uint))
+    (> max-supply u0)
+)
+
 (define-private (transfer-token 
     (token-id uint)
     (amount uint)
@@ -79,6 +107,7 @@
         (sender-balance (default-to { amount: u0 } (map-get? token-balances { owner: sender, token-id: token-id })))
         (recipient-balance (default-to { amount: u0 } (map-get? token-balances { owner: recipient, token-id: token-id })))
     )
+        (asserts! (validate-token-id token-id) err-invalid-token)
         (if (>= (get amount sender-balance) amount)
             (begin
                 (map-set token-balances
@@ -104,7 +133,10 @@
 )
     (let ((token-id (var-get next-token-id)))
         (asserts! (is-contract-owner) err-not-owner)
+        (asserts! (validate-max-supply max-supply) err-invalid-params)
         (asserts! (is-none (map-get? token-types { token-id: token-id })) err-token-exists)
+        (asserts! (not (is-eq metadata-uri "")) err-invalid-params)
+        
         (map-set token-types
             { token-id: token-id }
             {
@@ -139,7 +171,10 @@
         (current-balance (default-to { amount: u0 } (map-get? token-balances { owner: recipient, token-id: token-id })))
     )
         (asserts! (is-contract-owner) err-not-owner)
+        (asserts! (validate-token-id token-id) err-invalid-token)
+        (asserts! (> amount u0) err-invalid-params)
         (asserts! (<= (+ (get current-supply token-type) amount) (get max-supply token-type)) err-max-supply)
+        
         (map-set token-balances
             { owner: recipient, token-id: token-id }
             { amount: (+ (get amount current-balance) amount) }
@@ -160,6 +195,7 @@
         (properties (unwrap! (map-get? token-properties { token-id: token-id }) err-no-properties))
         (owner-balance (unwrap! (map-get? token-balances { owner: tx-sender, token-id: token-id }) err-insufficient-balance))
     )
+        (asserts! (validate-token-id token-id) err-invalid-token)
         (asserts! (> (get amount owner-balance) u0) err-insufficient-balance)
         (ok (map-set token-properties
             { token-id: token-id }
@@ -180,6 +216,8 @@
         (properties (unwrap! (map-get? token-properties { token-id: token-id }) err-no-properties))
         (owner-balance (unwrap! (map-get? token-balances { owner: tx-sender, token-id: token-id }) err-insufficient-balance))
     )
+        (asserts! (validate-token-id token-id) err-invalid-token)
+        (asserts! (> exp-amount u0) err-invalid-params)
         (asserts! (> (get amount owner-balance) u0) err-insufficient-balance)
         (ok (map-set token-properties
             { token-id: token-id }
@@ -201,7 +239,11 @@
         (listing-id (var-get next-listing-id))
         (balance (unwrap! (map-get? token-balances { owner: tx-sender, token-id: token-id }) err-insufficient-balance))
     )
+        (asserts! (validate-token-id token-id) err-invalid-token)
+        (asserts! (validate-price price) err-invalid-price)
+        (asserts! (> amount u0) err-invalid-params)
         (asserts! (>= (get amount balance) amount) err-insufficient-balance)
+        
         (map-set marketplace-listings
             { listing-id: listing-id }
             {
@@ -222,6 +264,7 @@
     (let (
         (listing (unwrap! (map-get? marketplace-listings { listing-id: listing-id }) err-no-listing))
     )
+        (asserts! (validate-listing-id listing-id) err-invalid-params)
         (asserts! (is-eq (get seller listing) tx-sender) err-not-owner)
         (map-delete marketplace-listings { listing-id: listing-id })
         (ok true)
@@ -235,6 +278,7 @@
         (listing (unwrap! (map-get? marketplace-listings { listing-id: listing-id }) err-no-listing))
         (price (get price listing))
     )
+        (asserts! (validate-listing-id listing-id) err-invalid-params)
         (try! (stx-transfer? price tx-sender (get seller listing)))
         (try! (transfer-token
             (get token-id listing)
