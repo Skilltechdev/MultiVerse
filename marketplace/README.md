@@ -155,3 +155,106 @@ Pull requests are welcome. For major changes, please open an issue first to disc
 - [ ] Enhanced metadata support
 - [ ] Comprehensive test suite
 - [ ] Frontend interface
+
+## Project Structure
+
+multiverse-assets/
+├── contracts/
+│   ├── asset.clar             # Core asset contract
+│   ├── marketplace.clar       # Separated marketplace functionality
+│   ├── gaming.clar           # Enhanced gaming mechanics
+│   └── helpers/
+│       ├── traits.clar       # Shared traits and interfaces
+│       └── utils.clar        # Utility functions
+├── tests/
+│   ├── asset_test.ts         # Core asset tests
+│   ├── marketplace_test.ts   # Marketplace tests
+│   └── gaming_test.ts        # Gaming mechanics tests
+├── frontend/
+│   ├── src/
+│   │   ├── components/       # React components
+│   │   ├── hooks/           # Custom hooks
+│   │   └── services/        # Contract interaction
+│   └── public/              # Static assets
+└── docs/
+    ├── contracts/           # Contract documentation
+    ├── api/                 # API documentation
+    └── guides/             # User and developer guides
+
+## Planned Enhancements
+
+### 1. Contract Architecture Improvements
+
+#### Core Asset Contract (asset.clar)
+- Implement SIP-009 NFT standard compatibility
+- Add batch operations support
+- Implement upgradeable pattern
+- Add emergency pause functionality
+- Enhanced metadata handling
+
+#### New Marketplace Contract (marketplace.clar)
+- Separate marketplace logic from core contract
+- Add auction functionality
+- Implement royalty system
+- Add offer/counter-offer system
+- Bundle sales support
+
+#### New Gaming Contract (gaming.clar)
+- Enhanced leveling system with multiple attributes
+- Crafting system
+- Item fusion mechanics
+- Quest/achievement system
+- Time-locked abilities
+
+### 2. New Features
+
+#### Marketplace Features
+- Dutch auctions
+- English auctions
+- Timed listings
+- Bundle listings
+- Offer system
+- Royalty distribution
+- Trading history
+
+#### Gaming Features
+- Character classes
+- Skill trees
+- Equipment slots
+- Inventory system
+- Crafting recipes
+- Achievement tracking
+- PvP mechanics
+
+#### Technical Features
+- Gas optimization
+- Enhanced security measures
+- Event emission
+- Cross-contract calls
+- Batch operations
+
+### 3. Data Structure Enhancements
+
+#### Token Properties
+```clarity
+(define-map token-properties
+    { token-id: uint }
+    {
+        level: uint,
+        experience: uint,
+        class: (string-ascii 20),
+        attributes: {
+            strength: uint,
+            dexterity: uint,
+            intelligence: uint
+        },
+        equipment: {
+            weapon: (optional uint),
+            armor: (optional uint),
+            accessory: (optional uint)
+        },
+        achievements: (list 20 uint),
+        last-modified: uint,
+        rarity: (string-ascii 20)
+    }
+)
